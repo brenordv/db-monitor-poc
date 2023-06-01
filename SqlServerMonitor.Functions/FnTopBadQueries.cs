@@ -1,11 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Data;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
+using SqlServerMonitor.Core.Builders;
+using SqlServerMonitor.Core.Enums;
 using SqlServerMonitor.Core.Models;
+using SqlServerMonitor.Core.Senders;
 
 namespace SqlServerMonitor.Functions;
 
@@ -20,16 +21,23 @@ public static class FnTopBadQueries
             commandType: CommandType.Text,
             connectionStringSetting: "SqlConnectionString")]
         IEnumerable<BadQueryInfo> queries,
+        [CosmosDB(databaseName: "%OutDatabaseName%", containerName: "%outCollectionName%",
+            Connection = "CosmosDbConnectionString",
+            CreateIfNotExists = false,
+            PartitionKey = "/id",
+            SqlQuery = "SELECT TOP 1 * FROM c WHERE c.Type = 3 ORDER BY c.CreatedAt DESC"
+        )]IEnumerable<DbReportDocument> previousReports,
         ILogger log)
     {
-        var badQueries = queries.ToList();
-        if (!badQueries.Any())
-        {
-            Console.WriteLine("No long running queries found.");
-            return;
-        }
+        var reportBuilder = new QueryResultReporterBuilder();
 
-        Console.WriteLine($"Found {badQueries.Count} long running queries.");
-        badQueries.ForEach(Console.WriteLine);
+        var (reportMessage, _) = reportBuilder
+            .Add(queries, ReportType.BadQuery, "Top bad queries")
+            .Build();
+
+        //TODO: Compare current report with previous report and add comparative data.
+        
+        //Could also send this Slack, Teams, etc.
+        new ConsoleWriterSender().Send(reportMessage);
     }
 }

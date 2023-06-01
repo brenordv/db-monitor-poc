@@ -3,7 +3,9 @@ using System.Data;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
-using SqlServerMonitor.Core.Build;
+using SqlServerMonitor.Core.Builders;
+using SqlServerMonitor.Core.Enums;
+using SqlServerMonitor.Core.Extensions;
 using SqlServerMonitor.Core.Models;
 using SqlServerMonitor.Core.Senders;
 
@@ -35,20 +37,23 @@ public static class FnAllInOne
             Connection = "CosmosDbConnectionString",
             CreateIfNotExists = false,
             PartitionKey = "/id"
-        )]IAsyncCollector<dynamic> documentsOut,
+        )]IAsyncCollector<DbReportDocument> documentsOut,
         ILogger log)
     {
+        //TODO: Get previous reports from CosmosDB and add comparative data.
+        
         var reportBuilder = new QueryResultReporterBuilder();
 
-        reportBuilder.AddData(longRunningQueries);
-        reportBuilder.AddData(missingIndexData);
-        reportBuilder.AddData(topBadQueries);
-
-        var (reportMessage, reportDocument) = reportBuilder.Build();
-
+        var (reportMessage, reportDocument) = reportBuilder
+            .Add(longRunningQueries, ReportType.LongRunningQuery, "Long running queries")
+            .Add(missingIndexData, ReportType.MissingIndex, "Missing indexes")
+            .Add(topBadQueries, ReportType.BadQuery, "Top bad queries")
+            .Build();
+        
         //Could also send this Slack, Teams, etc.
         new ConsoleWriterSender().Send(reportMessage);
 
-        await documentsOut.AddAsync(reportDocument);
+        //Add the reports to CosmosDB
+        await documentsOut.AddRangeAsync(reportDocument);
     }
 }
