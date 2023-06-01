@@ -30,7 +30,7 @@ public static class StringBuilderExtensions
         return sb;
     }
     
-    public static StringBuilder AppendQueryPlan(this StringBuilder sb, IList<ExecutionPlanStatement> statements)
+    public static StringBuilder AppendQueryPlan(this StringBuilder sb, IList<RelOp> statements)
     {
         if (!statements.Any())
         {
@@ -39,9 +39,9 @@ public static class StringBuilderExtensions
         }
         
         sb.AppendLine("According to the query plan, the worse parts of this query are:");
-        foreach (var (text, estimatedCost, isAboveAverageCost) in statements.Where(s => s.IsAboveAverageCost))
+        foreach (var relOp in statements.Where(s => s.IsAboveAverageCost))
         {
-            sb.AppendLine($"- {text} (estimated cost: {estimatedCost})");
+            sb.AppendLine($"- PhysicalOp: {relOp.PhysicalOp} / LogicalOp: {relOp.LogicalOp} / Cost: {relOp.EstimatedTotalSubtreeCost} / Exec Mode: {relOp.EstimatedExecutionMode} / Estimated Rows Read {relOp.EstimateRowsRead} / Estimated Rows: {relOp.EstimateRows} (avg size: {relOp.AvgRowSize} / Estimated IO: {relOp.EstimateIo} / Estimated CPU: {relOp.EstimateCpu})");
         }
         sb.AppendLine("\n");
         return sb;

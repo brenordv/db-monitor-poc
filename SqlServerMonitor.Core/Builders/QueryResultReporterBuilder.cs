@@ -57,7 +57,7 @@ public class QueryResultReporterBuilder
 
                 var missingIndexQueries = list.Cast<MissingIndexInfo>().ToList();
                 var sb2 = new StringBuilder();
-                sb2.AppendLine($"Found {list.Count} queries with missing indexes.");
+                sb2.AppendLine($"Found {list.Count} queries with missing indexes. Showing the details on the top 3.");
 
                 var queryWithMaxImpact = missingIndexQueries.OrderByDescending(x => x.AvgTotalUserCost).First();
                 sb2.AppendLine(
