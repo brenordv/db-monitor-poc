@@ -1,4 +1,5 @@
 # DB Monitor
+tdb, wip. tyvm.
 
 ## Pros and cons
 1. **Modularity:** Each function is dedicated to a particular task (long running queries, missing indexes, top 10 worst
@@ -244,6 +245,10 @@ SQL Server queries.
 ### `FnAllInOne` - All in one function
 As you can imagine, the `FnAllInOne` function does what the previous functions do, but in one function.
 
+### Report Document
+Along with the report described previously, an instance of a CosmosDb (compatible) object is created with the complete
+data extracted. This object can be used to do a more in-depth analysis of server's performance.
+
 
 # About Azure Functions
 ## Lifecycle
@@ -272,17 +277,14 @@ like closing database connections.
 Below are the primary sources of information that can provide more details about Azure Function Bindings and the 
 execution lifecycle.
 
-1. **Azure Functions triggers and bindings concepts**:
+1. **[Azure Functions triggers and bindings concepts](https://docs.microsoft.com/en-us/azure/azure-functions/functions-triggers-bindings)**:
    This is a general guide to the concepts of triggers and bindings in Azure Functions.
-   [Link to Documentation](https://docs.microsoft.com/en-us/azure/azure-functions/functions-triggers-bindings)
 
-2. **Azure Functions developer guide**:
+2. **[Azure Functions developer guide](https://docs.microsoft.com/en-us/azure/azure-functions/functions-reference)**:
    This guide provides information on the lifecycle of an Azure Function, among other topics.
-   [Link to Documentation](https://docs.microsoft.com/en-us/azure/azure-functions/functions-reference)
 
-3. **Work with Azure Functions Proxies**:
+3. **[Work with Azure Functions Proxies](https://docs.microsoft.com/en-us/azure/azure-functions/functions-proxies)**:
    This guide includes a section on the execution order of bindings and proxies.
-   [Link to Documentation](https://docs.microsoft.com/en-us/azure/azure-functions/functions-proxies)
 
 
 # Installation
