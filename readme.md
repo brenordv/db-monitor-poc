@@ -1,5 +1,5 @@
 # DB Monitor
-tdb, wip. tyvm.
+tbd, wip. tyvm.
 
 ## Pros and cons
 1. **Modularity:** Each function is dedicated to a particular task (long running queries, missing indexes, top 10 worst
