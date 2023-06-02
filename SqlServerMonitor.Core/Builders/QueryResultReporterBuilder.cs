@@ -24,97 +24,89 @@ public class QueryResultReporterBuilder
         return this;
     }
 
-    private string ConvertToText(IList<object> list, ReportType type)
+    private static string ConvertToText<T>(IList<T> list, ReportType type) where T : class
     {
+        if (!list.Any())
+        {
+            return type switch
+            {
+                ReportType.LongRunningQuery => "No long running queries found.",
+                ReportType.MissingIndex => "No queries with missing indexes found.",
+                ReportType.BadQuery => "No bad queries found.",
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+            };
+        }
+
+        var sb = new StringBuilder();
+        sb.AppendLine($"Found {list.Count} {type.ToString().ToLowerInvariant()}s.");
+
         switch (type)
         {
             case ReportType.LongRunningQuery:
-                if (!list.Any())
-                    return "No long running queries found.";
-
-                var longRunningQueries = list.Cast<LongRunningQueryInfo>().ToList();
-                var sb = new StringBuilder();
-                sb.AppendLine($"Found {list.Count} long running queries.");
-
-                var queryWithMaxCpuTime = longRunningQueries.OrderByDescending(x => x.CpuTime).First();
-                sb.AppendLine(
-                    $"Query with max CPU time last ran date {queryWithMaxCpuTime.StartTime}, CPU time {queryWithMaxCpuTime.CpuTime} ms, query text (100 chars): {queryWithMaxCpuTime.Text[..100]}...");
-
-                var queryWithMaxWaitTime = longRunningQueries.OrderByDescending(x => x.WaitTime).First();
-                sb.AppendLine(
-                    $"Query with max wait time last ran date {queryWithMaxWaitTime.StartTime}, wait time {queryWithMaxWaitTime.WaitTime} ms, query text (100 chars): {queryWithMaxWaitTime.Text[..100]}...");
-
-                var queryWithMaxTotalElapsedTime =
-                    longRunningQueries.OrderByDescending(x => x.TotalElapsedTime).First();
-                sb.AppendLine(
-                    $"Query with max total elapsed time last ran date {queryWithMaxTotalElapsedTime.StartTime}, total elapsed time {queryWithMaxTotalElapsedTime.TotalElapsedTime} ms, query text (100 chars): {queryWithMaxTotalElapsedTime.Text[..100]}...");
-
-                return sb.ToString();
+                var longRunningQueries = list.Cast<LongRunningQueryInfo>().OrderByDescending(x => x.CpuTime).ToList();
+                AppendTopQueries(sb, longRunningQueries, x => x.CpuTime, x => x.WaitTime, x => x.TotalElapsedTime);
+                break;
 
             case ReportType.MissingIndex:
-                if (!list.Any())
-                    return "No queries with missing indexes found.";
-
-                var missingIndexQueries = list.Cast<MissingIndexInfo>().ToList();
-                var sb2 = new StringBuilder();
-                sb2.AppendLine($"Found {list.Count} queries with missing indexes. Showing the details on the top 3.");
-
-                var queryWithMaxImpact = missingIndexQueries.OrderByDescending(x => x.AvgTotalUserCost).First();
-                sb2.AppendLine(
-                    $"Query with max impact ({queryWithMaxImpact.AvgTotalUserCost}), query text (100 chars): {queryWithMaxImpact.CreateStatement[..100]}...");
-                sb2.AppendLine($"Suggested index: {queryWithMaxImpact.CreateStatement}");
-
-                if (missingIndexQueries.Count == 1)
-                    return sb2.ToString();
-
-                var queryWithSecondToMaxImpact =
-                    missingIndexQueries.OrderByDescending(x => x.AvgTotalUserCost).Skip(1).First();
-                sb2.AppendLine(
-                    $"Query with second to max impact ({queryWithSecondToMaxImpact.AvgTotalUserCost}), query text (100 chars): {queryWithSecondToMaxImpact.CreateStatement[..100]}...");
-                sb2.AppendLine($"Suggested index: {queryWithSecondToMaxImpact.CreateStatement}");
-
-                if (missingIndexQueries.Count == 2)
-                    return sb2.ToString();
-
-                var queryWithThirdToMaxImpact =
-                    missingIndexQueries.OrderByDescending(x => x.AvgTotalUserCost).Skip(2).First();
-                sb2.AppendLine(
-                    $"Query with third to max impact ({queryWithThirdToMaxImpact.AvgTotalUserCost}), query text (100 chars): {queryWithThirdToMaxImpact.CreateStatement[..100]}...");
-                sb2.AppendLine($"Suggested index: {queryWithThirdToMaxImpact.CreateStatement}");
-
-                return sb2.ToString();
+                var missingIndexQueries =
+                    list.Cast<MissingIndexInfo>().OrderByDescending(x => x.AvgTotalUserCost).ToList();
+                AppendTopQueries(sb, missingIndexQueries, x => x.AvgTotalUserCost);
+                break;
 
             case ReportType.BadQuery:
-                if (!list.Any())
-                    return "No bad queries found.";
-
-                var badQueries = list.Cast<BadQueryInfo>().ToList();
-                var sb3 = new StringBuilder();
-                sb3.AppendLine($"Found {list.Count} bad queries.");
-
+                var badQueries = list.Cast<BadQueryInfo>().OrderByDescending(x => x.AvgCpuTime).ToList();
+                AppendTopQueries(sb, badQueries, x => x.AvgCpuTime);
                 var mostExecutedQuery = badQueries.OrderByDescending(x => x.ExecutionCount).First();
-
-                var queryWithMaxCpuTime2 = badQueries.OrderByDescending(x => x.AvgCpuTime).First();
-                sb3.AppendLine(
-                    $"Query with max CPU time ({queryWithMaxCpuTime2.AvgCpuTime}) was executed {queryWithMaxCpuTime2.ExecutionCount} times, taking a total of {queryWithMaxCpuTime2.TotalCpuTime} of the CPU time. , query text (100 chars): {queryWithMaxCpuTime2.SqlText[..100]}...");
-                var queryPlan = queryWithMaxCpuTime2.QueryPlan.ExtractStatementsFromPlan();
-                sb3.AppendQueryPlan(queryPlan);
-
-                if (mostExecutedQuery == queryWithMaxCpuTime2)
+                if (mostExecutedQuery != badQueries.First())
                 {
-                    sb3.AppendLine("This query is also the most executed query.");
-                    return sb3.ToString();
+                    AppendQueryInfo(sb, mostExecutedQuery, "Most executed query");
                 }
 
-                sb3.AppendLine(
-                    $"Most executed query ({mostExecutedQuery.ExecutionCount} times) took a total of {mostExecutedQuery.TotalCpuTime} of the CPU time. , query text (100 chars): {mostExecutedQuery.SqlText[..100]}...");
-                queryPlan = mostExecutedQuery.QueryPlan.ExtractStatementsFromPlan();
-                sb3.AppendQueryPlan(queryPlan);
-
-                return sb3.ToString();
+                break;
 
             default:
                 throw new ArgumentOutOfRangeException(nameof(type), type, null);
+        }
+
+        return sb.ToString();
+    }
+
+    private static void AppendTopQueries<T>(StringBuilder sb, List<T> sortedQueries, params Func<T, object>[] orderByProps)
+        where T : class
+    {
+        for (var i = 0; i < Math.Min(3, sortedQueries.Count); i++)
+        {
+            var query = sortedQueries[i];
+            var propName = orderByProps[i].Method.Name.Replace("get_", "");
+            AppendQueryInfo(sb, query, $"Query with {i + 1}-th max {propName}");
+        }
+    }
+
+    private static void AppendQueryInfo<T>(StringBuilder sb, T query, string prefix) where T : class
+    {
+        switch (query)
+        {
+            case LongRunningQueryInfo longRunningQuery:
+                sb.AppendLine(
+                    $"{prefix} last ran date {longRunningQuery.StartTime}, CPU time {longRunningQuery.CpuTime} ms, wait time {longRunningQuery.WaitTime} ms, total elapsed time {longRunningQuery.TotalElapsedTime} ms, query text (100 chars): {longRunningQuery.Text.Substring(0, Math.Min(longRunningQuery.Text.Length, 100))}...");
+                break;
+
+            case MissingIndexInfo missingIndexQuery:
+                sb.AppendLine(
+                    $"{prefix} ({missingIndexQuery.AvgTotalUserCost}), query text (100 chars): {missingIndexQuery.CreateStatement.Substring(0, Math.Min(missingIndexQuery.CreateStatement.Length, 100))}...");
+                sb.AppendLine($"Suggested index: {missingIndexQuery.CreateStatement}");
+                break;
+
+            case BadQueryInfo badQuery:
+                sb.AppendLine(
+                    $"{prefix} ({badQuery.AvgCpuTime}) was executed {badQuery.ExecutionCount} times, taking a total of {badQuery.TotalCpuTime} of the CPU time. , query text (100 chars): {badQuery.SqlText.Substring(0, Math.Min(badQuery.SqlText.Length, 100))}...");
+                
+                var queryPlan = badQuery.QueryPlan.ExtractStatementsFromPlan();
+                sb.AppendQueryPlan(queryPlan);
+                break;
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(query), query, "Unexpected query type");
         }
     }
 
