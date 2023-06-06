@@ -5,13 +5,14 @@ tbd, wip. tyvm.
 
 1. Which queries are currently running for a long time.
 2. Which queries are missing indexes and the list of missing indexes for each query.
-3. Which queries are the worst? And which part of those queries are the worst.
+3. Which queries are the worst? And for each query, the top 3 worst operations.
 
 ## What can you do with that info?
 
 1. Save the reports to a CosmosDb collection.
 2. Save the reports to a storage file (and maybe use it in an Azure Data Factory pipeline).
-3. Send the reports to an email address. 
+3. Send the reports to an email address/Slack/Teams/some other API.
+4. Store the reports in a SQL database.
 
 
 # Pros and cons
@@ -33,14 +34,14 @@ This ensures resources are used efficiently.
 Cons of using Azure Functions for SQL Server performance management:
 
 1. **Cold Start:** Azure Functions could have a delay in their initial execution, known as a cold start. This could 
-impact the timely execution of performance management tasks.
+impact the timely execution of performance management tasks. (Might just apply to the Long Running Query.)
 
-2. **Complexity:** Depending on how the functions are written and managed, they could add complexity to your system, 
-especially if you're dealing with multiple functions and coordinating between them.
+2. **Complexity:** You'll be relying on a whole new infrastructure and codebase to monitor the database and some of this
+could be done by using native Azure tools.
 
 3. **Long-Running Tasks:** Azure Functions have a maximum execution time (by default, it's 5 minutes on a Consumption 
 plan but can be extended to 10 minutes or unlimited in a Premium plan). Functions handling long-running queries may hit
-this limit.
+this limit. The current queries are optimized, so in the current form, this should not be a problem.
 
 4. **Security:** Sensitive information (like connection strings to your SQL server) needs to be securely stored and 
 managed. Mismanagement could lead to security vulnerabilities.
