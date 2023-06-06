@@ -1,7 +1,7 @@
 # DB Monitor
 tbd, wip. tyvm.
 
-# What can you get from this project?
+## What data can you get from this project?
 
 1. Which queries are currently running for a long time.
 2. Which queries are missing indexes and the list of missing indexes for each query.
