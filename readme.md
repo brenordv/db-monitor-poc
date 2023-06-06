@@ -1,11 +1,23 @@
 # DB Monitor
-tbd, wip. tyvm.
+The Project Db Monitoring aims to leverage readily available resources like Azure Functions to effectively monitor 
+a database. The primary goal is to proactively identify and address issues, such as poor query performance, before they
+escalate into full-scale outages. By implementing this monitoring solution, organizations can potentially reduce costs 
+associated with downtime and prevent significant database disruptions.
+
+It's worth noting that monitoring alone might not be sufficient to entirely prevent outages. Additional measures like 
+performance optimization, query tuning, and infrastructure scalability might be necessary to ensure robust database 
+operations.
 
 ## What data can you get from this project?
 
 1. Which queries are currently running for a long time.
 2. Which queries are missing indexes and the list of missing indexes for each query.
 3. Which queries are the worst? And for each query, the top 3 worst operations.
+4. Comparative data (current vs previous execution):
+   - How many new indexes do I need to create? Are they all form the same table?
+   - Do I have a new bad query in the top 10 worst queries (or are they still the same ones from before)?
+   - Do any of my bad queries gotten any worst (like more cpu usage)? If so, was it because of a new operation 
+     (query plan analysis) or because it was executed more times (executionCount)? 
 
 ## What can you do with that info?
 
