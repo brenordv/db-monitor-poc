@@ -1,7 +1,20 @@
 # DB Monitor
 tbd, wip. tyvm.
 
-## Pros and cons
+# What can you get from this project?
+
+1. Which queries are currently running for a long time.
+2. Which queries are missing indexes and the list of missing indexes for each query.
+3. Which queries are the worst? And which part of those queries are the worst.
+
+## What can you do with that info?
+
+1. Save the reports to a CosmosDb collection.
+2. Save the reports to a storage file (and maybe use it in an Azure Data Factory pipeline).
+3. Send the reports to an email address. 
+
+
+# Pros and cons
 1. **Modularity:** Each function is dedicated to a particular task (long running queries, missing indexes, top 10 worst
 queries, and combined function). This allows for focused development, maintenance, and scaling.
 
@@ -49,10 +62,10 @@ SQL Server metrics and setting up alerts for when certain conditions are met.
 intelligence to continuously monitor queries executed on a database, and it automatically improves their performance.
 
 
-## Project parts
+# Project parts
 This project consists of a Azure Function App with 4 functions.
 
-### `FnLongRunningQueries` - Find long running queries
+## `FnLongRunningQueries` - Find long running queries
 This query retrieves information about currently executing requests in SQL Server.
 
 Below is the SQL query that retrieves information about currently executing requests in SQL Server that are neither 
@@ -104,7 +117,7 @@ will be included.
 As with other diagnostic queries, be mindful of potential performance impacts when running this query on a
 production system.
 
-### `FnMissingIndexes` - Detect missing indexes
+## `FnMissingIndexes` - Detect missing indexes
 This function retrieves information about missing indexes in the SQL Server.
 
 Below is the SQL query that retrieves that information:
@@ -147,7 +160,7 @@ Please note that these views suggest what indexes are missing based on the execu
 restart or the last time the database was brought online. Use this information wisely because it's always recommended 
 to review and test suggested indexes before implementing them in a production environment.
 
-### `FnTopBadQueries` - Find top 10 bad queries
+## `FnTopBadQueries` - Find top 10 bad queries
 This function retrieves information about the top 10 queries with the highest average CPU time in SQL Server.
 Query used:
 ```sql
@@ -183,22 +196,22 @@ The query returns the 10 queries with the highest total CPU time, which can help
 significant CPU resources. Please note that these statistics are based on cached query plans, and the data resets when 
 the SQL Server service is restarted or when the plans are removed from the cache.
 
-### `FnAllInOne` - All in one function
+## `FnAllInOne` - All in one function
 This functions does what the previous functions do, but in one function. 
 
 
-## Function Reports
-### `FnLongRunningQueries` - Find long running queries
+# Function Reports
+## `FnLongRunningQueries` - Find long running queries
 Each `LongRunningQueryInfo` object contains details about a long-running SQL query, such as its start time, CPU time, 
 wait time, total elapsed time, and the SQL text of the query. The method identifies and includes details of the queries
 with maximum CPU time, wait time, and total elapsed time in the report.
 
-### `FnMissingIndexes` - Detect missing indexes
+## `FnMissingIndexes` - Detect missing indexes
 Each `MissingIndexInfo` object contains information about a SQL query that could potentially benefit from having an 
 additional index. It includes the SQL text of the query and the statement to create the missing index. The method 
 identifies and includes details of the top 3 queries with maximum average total user cost in the report.
 
-### `FnTopBadQueries` - Find top 10 bad queries
+## `FnTopBadQueries` - Find top 10 bad queries
 Each `BadQueryInfo` object contains details about a SQL query that has been identified as "bad" due to performance 
 issues. The method identifies and includes details of the query with maximum average CPU time and the most frequently 
 executed query in the report.
@@ -242,10 +255,10 @@ is in Row mode, there might be an opportunity for optimization.
 By analyzing these attributes, a DBA or developer can identify potential bottlenecks and areas for improvement in 
 SQL Server queries.
 
-### `FnAllInOne` - All in one function
+## `FnAllInOne` - All in one function
 As you can imagine, the `FnAllInOne` function does what the previous functions do, but in one function.
 
-### Report Document
+## Report Document
 Along with the report described previously, an instance of a CosmosDb (compatible) object is created with the complete
 data extracted. This object can be used to do a more in-depth analysis of server's performance.
 
