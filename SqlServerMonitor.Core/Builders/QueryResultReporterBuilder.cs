@@ -24,7 +24,7 @@ public class QueryResultReporterBuilder
         return this;
     }
 
-    private static string ConvertToText<T>(IList<T> list, ReportType type) where T : class
+    private static string ConvertToText<T>(ICollection<T> list, ReportType type) where T : class
     {
         if (!list.Any())
         {
@@ -38,30 +38,36 @@ public class QueryResultReporterBuilder
         }
 
         var sb = new StringBuilder();
-        sb.AppendLine($"Found {list.Count} {type.ToString().ToLowerInvariant()}s.");
 
         switch (type)
         {
             case ReportType.LongRunningQuery:
-                var longRunningQueries = list.Cast<LongRunningQueryInfo>().OrderByDescending(x => x.CpuTime).ToList();
-                AppendTopQueries(sb, longRunningQueries, x => x.CpuTime, x => x.WaitTime, x => x.TotalElapsedTime);
+                var longRunningQueries = list.Cast<LongRunningQueryInfo>().ToList();
+                sb.AppendLine($"Found {longRunningQueries.Count} long running queries.");
+                sb.AppendDetailToReport(longRunningQueries, x => x.CpuTime, "Total CPU time");
+                sb.AppendDetailToReport(longRunningQueries, x => x.WaitTime, "Total Wait time");
+                sb.AppendDetailToReport(longRunningQueries, x => x.TotalElapsedTime, "Total Elapsed time");
                 break;
 
             case ReportType.MissingIndex:
-                var missingIndexQueries =
-                    list.Cast<MissingIndexInfo>().OrderByDescending(x => x.AvgTotalUserCost).ToList();
-                AppendTopQueries(sb, missingIndexQueries, x => x.AvgTotalUserCost);
+                var missingIndexQueries = list.Cast<MissingIndexInfo>().ToList();
+                sb.AppendLine($"Found {missingIndexQueries.Count} queries with missing indexes.");
+                sb.AppendDetailToReport(missingIndexQueries, x => x.AvgTotalUserCost, "Avg Total User Cost");
                 break;
 
             case ReportType.BadQuery:
-                var badQueries = list.Cast<BadQueryInfo>().OrderByDescending(x => x.AvgCpuTime).ToList();
-                AppendTopQueries(sb, badQueries, x => x.AvgCpuTime);
+                var badQueries = list.Cast<BadQueryInfo>().ToList();
+                sb.AppendLine($"Found {badQueries.Count} top bad queries.");
+                sb.AppendDetailToReport(badQueries, x => x.ExecutionCount, "Execution Count");
+                sb.AppendDetailToReport(badQueries, x => x.TotalCpuTime, "Total CPU time");
+                
                 var mostExecutedQuery = badQueries.OrderByDescending(x => x.ExecutionCount).First();
-                if (mostExecutedQuery != badQueries.First())
-                {
-                    AppendQueryInfo(sb, mostExecutedQuery, "Most executed query");
-                }
-
+                var mostCpuTimeQuery = badQueries.OrderByDescending(x => x.TotalCpuTime).First();
+                if (mostExecutedQuery == mostCpuTimeQuery) break;
+                
+                sb.AppendLine("Note: The most executed query in the top 10 bad queries is not the one with the most CPU time.");
+                AppendQueryInfo(sb, mostExecutedQuery, "Most executed query");
+                AppendQueryInfo(sb, mostCpuTimeQuery, "Most Cpu time query");
                 break;
 
             default:
@@ -70,39 +76,25 @@ public class QueryResultReporterBuilder
 
         return sb.ToString();
     }
-
-    private static void AppendTopQueries<T>(StringBuilder sb, IList<T> sortedQueries, params Func<T, object>[] orderByProps)
-        where T : class
-    {
-        for (var i = 0; i < Math.Min(3, sortedQueries.Count); i++)
-        {
-            var query = sortedQueries[i];
-            foreach (var orderByProp in orderByProps)
-            {
-                var propName = orderByProp.Method.Name.Replace("get_", "");
-                AppendQueryInfo(sb, query, $"Query with {i + 1}-th max {propName}");    
-            }
-        }
-    }
-
+    
     private static void AppendQueryInfo<T>(StringBuilder sb, T query, string prefix) where T : class
     {
         switch (query)
         {
             case LongRunningQueryInfo longRunningQuery:
                 sb.AppendLine(
-                    $"{prefix} last ran date {longRunningQuery.StartTime}, CPU time {longRunningQuery.CpuTime} ms, wait time {longRunningQuery.WaitTime} ms, total elapsed time {longRunningQuery.TotalElapsedTime} ms, query text (100 chars): {longRunningQuery.Text.Substring(0, Math.Min(longRunningQuery.Text.Length, 100))}...");
+                    $"{prefix} last ran date {longRunningQuery.StartTime}, CPU time {longRunningQuery.CpuTime} ms, wait time {longRunningQuery.WaitTime} ms, total elapsed time {longRunningQuery.TotalElapsedTime} ms, query text (100 chars): {longRunningQuery.Text[..Math.Min(longRunningQuery.Text.Length, 100)]}...");
                 break;
 
             case MissingIndexInfo missingIndexQuery:
                 sb.AppendLine(
-                    $"{prefix} ({missingIndexQuery.AvgTotalUserCost}), query text (100 chars): {missingIndexQuery.CreateStatement.Substring(0, Math.Min(missingIndexQuery.CreateStatement.Length, 100))}...");
+                    $"{prefix} ({missingIndexQuery.AvgTotalUserCost}), query text (100 chars): {missingIndexQuery.CreateStatement[..Math.Min(missingIndexQuery.CreateStatement.Length, 100)]}...");
                 sb.AppendLine($"Suggested index: {missingIndexQuery.CreateStatement}");
                 break;
 
             case BadQueryInfo badQuery:
                 sb.AppendLine(
-                    $"{prefix} ({badQuery.AvgCpuTime}) was executed {badQuery.ExecutionCount} times, taking a total of {badQuery.TotalCpuTime} of the CPU time. , query text (100 chars): {badQuery.SqlText.Substring(0, Math.Min(badQuery.SqlText.Length, 100))}...");
+                    $"{prefix} was executed {badQuery.ExecutionCount} times with an avg CPU time of {badQuery.AvgCpuTime}, taking a total of {badQuery.TotalCpuTime} of the CPU time. , query text (100 chars): {badQuery.SqlText[..Math.Min(badQuery.SqlText.Length, 100)]}...");
                 
                 var queryPlan = badQuery.QueryPlan.ExtractStatementsFromPlan();
                 sb.AppendQueryPlan(queryPlan);

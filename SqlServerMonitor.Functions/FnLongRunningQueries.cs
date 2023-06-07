@@ -12,6 +12,7 @@ namespace SqlServerMonitor.Functions;
 
 public static class FnLongRunningQueries
 {
+    [Disable]
     [FunctionName("FnLongRunningQueries")]
     public static async Task RunAsync(
         [TimerTrigger("0 */5 * * * *", RunOnStartup = true)]

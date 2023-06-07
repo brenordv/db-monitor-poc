@@ -13,6 +13,7 @@ namespace SqlServerMonitor.Functions;
 
 public static class FnTopBadQueries
 {
+    [Disable]
     [FunctionName("FnTopBadQueries")]
     public static async Task RunAsync(
         [TimerTrigger("0 */5 * * * *", RunOnStartup = true)]

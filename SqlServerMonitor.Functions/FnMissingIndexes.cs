@@ -12,6 +12,7 @@ namespace SqlServerMonitor.Functions;
 
 public static class FnMissingIndexes
 {
+    [Disable]
     [FunctionName("FnMissingIndexes")]
     public static async Task RunAsync(
         [TimerTrigger("0 */5 * * * *", RunOnStartup = true)]

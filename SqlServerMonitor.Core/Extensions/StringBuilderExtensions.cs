@@ -46,4 +46,18 @@ public static class StringBuilderExtensions
         sb.AppendLine("\n");
         return sb;
     }
+    
+    public static StringBuilder AppendDetailToReport<TSource, TKey>(this StringBuilder sb, IList<TSource> list, Func<TSource, TKey> orderByFunc, string label)
+    {
+        //Getting query with highest whatever property is passed in orderByFunc.
+        var query = list.MaxBy(orderByFunc);
+        var queryNumber = list.IndexOf(query) + 1;
+        
+        //Kind of hacky, but it works and I don't have to use reflection or pass anything else in.
+        var value = orderByFunc(query);
+        
+        //Appending some basic info to report
+        sb.AppendLine($"Query number {queryNumber} has the highest {label} ({value}).");
+        return sb;
+    }
 }
