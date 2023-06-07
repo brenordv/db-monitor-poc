@@ -24,7 +24,6 @@ public static class FnMissingIndexes
         [CosmosDB(databaseName: "%OutDatabaseName%", containerName: "%outCollectionName%",
             Connection = "CosmosDbConnectionString",
             CreateIfNotExists = false,
-            PartitionKey = "/id",
             SqlQuery = "SELECT TOP 1 * FROM c WHERE c.Type = 2 ORDER BY c.CreatedAt DESC"
         )]IEnumerable<DbReportDocument> previousReports,
         ILogger log)

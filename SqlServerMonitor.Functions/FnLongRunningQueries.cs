@@ -25,7 +25,6 @@ public static class FnLongRunningQueries
         [CosmosDB(databaseName: "%OutDatabaseName%", containerName: "%outCollectionName%",
             Connection = "CosmosDbConnectionString",
             CreateIfNotExists = false,
-            PartitionKey = "/id",
             SqlQuery = "SELECT TOP 1 * FROM c WHERE c.Type = 1 ORDER BY c.CreatedAt DESC"
         )]IEnumerable<DbReportDocument> previousReports,
         ILogger log)

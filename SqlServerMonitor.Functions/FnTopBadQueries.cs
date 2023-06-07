@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
@@ -24,8 +25,7 @@ public static class FnTopBadQueries
         [CosmosDB(databaseName: "%OutDatabaseName%", containerName: "%outCollectionName%",
             Connection = "CosmosDbConnectionString",
             CreateIfNotExists = false,
-            PartitionKey = "/id",
-            SqlQuery = "SELECT TOP 1 * FROM c WHERE c.Type = 3 ORDER BY c.CreatedAt DESC"
+            SqlQuery = "SELECT top 1 * FROM c WHERE c.Type = 3 ORDER BY c.CreatedAt DESC"
         )]IEnumerable<DbReportDocument> previousReports,
         ILogger log)
     {
@@ -36,7 +36,7 @@ public static class FnTopBadQueries
             .Build();
 
         //TODO: Compare current report with previous report and add comparative data.
-        
+
         //Could also send this Slack, Teams, etc.
         new ConsoleWriterSender().Send(reportMessage);
     }

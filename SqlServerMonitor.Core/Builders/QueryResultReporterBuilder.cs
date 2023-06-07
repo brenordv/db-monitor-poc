@@ -71,14 +71,17 @@ public class QueryResultReporterBuilder
         return sb.ToString();
     }
 
-    private static void AppendTopQueries<T>(StringBuilder sb, List<T> sortedQueries, params Func<T, object>[] orderByProps)
+    private static void AppendTopQueries<T>(StringBuilder sb, IList<T> sortedQueries, params Func<T, object>[] orderByProps)
         where T : class
     {
         for (var i = 0; i < Math.Min(3, sortedQueries.Count); i++)
         {
             var query = sortedQueries[i];
-            var propName = orderByProps[i].Method.Name.Replace("get_", "");
-            AppendQueryInfo(sb, query, $"Query with {i + 1}-th max {propName}");
+            foreach (var orderByProp in orderByProps)
+            {
+                var propName = orderByProp.Method.Name.Replace("get_", "");
+                AppendQueryInfo(sb, query, $"Query with {i + 1}-th max {propName}");    
+            }
         }
     }
 
